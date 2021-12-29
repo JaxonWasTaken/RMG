@@ -140,13 +140,17 @@ void MainDialog::on_InputPollTimer_triggered()
     }
 
     // verify/update the SDL thread action state
-    if (this->sdlThread->GetCurrentAction() == SDLThreadAction::GetInputDevices)
-    { // don't do anything when we're querying the input devices
-        return;
-    }
-    else if (this->sdlThread->GetCurrentAction() == SDLThreadAction::None)
-    { // when the SDL thread is doing nothing, pump the sdl events instead
-        sdlThread->SetAction(SDLThreadAction::SDLPumpEvents);
+    switch (this->sdlThread->GetCurrentAction())
+    {
+        case SDLThreadAction::GetInputDevices:
+            // don't do anything when we're querying the input devices
+            return;
+        case SDLThreadAction::None:
+            // when the SDL thread is doing nothing, pump the sdl events instead
+            sdlThread->SetAction(SDLThreadAction::SDLPumpEvents);
+            break;
+        default:
+            break;
     }
 
     // check if controller has been disconnected,
