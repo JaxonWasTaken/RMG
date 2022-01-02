@@ -48,8 +48,7 @@ public:
 	void StopTimer();
 
 
-	void SetInputData(enum InputType type, int value, QString name);
-	void SetExtraInputData(int value);
+	void SetInputData(enum InputType type, int value, int extraValue, QString name);
 	enum InputType GetInputType();
 	int GetInputData();
 	int GetExtraInputData();

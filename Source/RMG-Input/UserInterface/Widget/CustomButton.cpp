@@ -46,17 +46,13 @@ void CustomButton::StopTimer()
     this->countDownTimer->stop();
 }
 
-void CustomButton::SetInputData(enum InputType type, int value, QString name)
+void CustomButton::SetInputData(enum InputType type, int value, int extraValue, QString name)
 {
     this->inputType = type;
     this->inputData = value;
+    this->extraInputData = extraValue;
     this->setText(name);
     this->StopTimer();
-}
-
-void CustomButton::SetExtraInputData(int value)
-{
-    this->extraInputData = value;
 }
 
 enum InputType CustomButton::GetInputType()

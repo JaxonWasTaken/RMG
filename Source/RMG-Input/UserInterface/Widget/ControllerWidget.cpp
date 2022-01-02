@@ -282,6 +282,7 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
                     this->currentButton->SetInputData(
                         InputType::GamepadButton, 
                         sdlButton,
+                        0,
                         SDL_GameControllerGetStringForButton(sdlButton)
                     );
                     this->currentButton = nullptr;
@@ -356,10 +357,8 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
                     this->currentButton->SetInputData(
                         InputType::GamepadAxis, 
                         sdlAxis,
+                        sdlAxisDirection,
                         name
-                    );
-                    this->currentButton->SetExtraInputData(
-                        sdlAxisDirection
                     );
                     this->currentButton = nullptr;
                 }
