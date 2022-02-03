@@ -10,6 +10,8 @@
 #include "MainDialog.hpp"
 #include "Widget/ControllerWidget.hpp"
 
+#include <RMG-Core/Core.hpp>
+
 #include <SDL.h>
 #include <QTimer>
 
@@ -31,6 +33,8 @@ MainDialog::MainDialog(QWidget* parent, Thread::SDLThread* sdlThread) : QDialog(
     for (int i = 0; i < this->tabWidget->count(); i++)
     {
         Widget::ControllerWidget* widget = new Widget::ControllerWidget(this);
+        widget->SetSettingsSection("Rosalie's Mupen GUI - Input Plugin Profile " + QString::number(i));
+        widget->LoadSettings();
         this->tabWidget->widget(i)->layout()->addWidget(widget);
         controllerWidgets.push_back(widget);
         connect(widget, &Widget::ControllerWidget::CurrentInputDeviceChanged, this,
@@ -234,5 +238,21 @@ void MainDialog::on_SDLThread_DeviceSearchFinished(void)
 
     // we can refresh safely again
     this->updatingDeviceList = false;
+}
+
+void MainDialog::on_buttonBox_clicked(QAbstractButton *button)
+{
+    QPushButton *pushButton = (QPushButton *)button;
+    QPushButton *okButton = this->buttonBox->button(QDialogButtonBox::Ok);
+
+    if (pushButton == okButton)
+    {
+        for (auto& controllerWidget : this->controllerWidgets)
+        {
+            controllerWidget->SaveSettings();
+        }
+
+        CoreSettingsSave();
+    }
 }
 

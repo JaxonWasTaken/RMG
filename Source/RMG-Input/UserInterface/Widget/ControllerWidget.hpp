@@ -29,6 +29,8 @@ class ControllerWidget : public QWidget, Ui::ControllerWidget
     Q_OBJECT
 
 private:
+    QString settingsSection;
+
     QList<QString> inputDeviceNameList;
     CustomButton* currentButton = nullptr;
 
@@ -61,6 +63,10 @@ public:
     void GetCurrentInputDevice(QString& deviceName, int& deviceNum);
     bool IsPluggedIn();
 
+    void SetSettingsSection(QString section);
+    void LoadSettings();
+    void SaveSettings();
+
 private slots:
     void on_deadZoneSlider_valueChanged(int value);
     void on_analogStickRangeSlider_valueChanged(int value);
@@ -69,7 +75,9 @@ private slots:
     void on_inputDeviceRefreshButton_clicked();
     
     void on_controllerPluggedCheckBox_toggled(bool value);
+
     void on_setupButton_clicked();
+    void on_optionsButton_clicked();
 
 public slots:
     void on_CustomButton_released(CustomButton* button);

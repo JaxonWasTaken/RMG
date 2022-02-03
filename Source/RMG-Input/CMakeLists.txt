@@ -18,6 +18,8 @@ set(RMG_INPUT_SOURCES
     UserInterface/Widget/ControllerWidget.cpp
     UserInterface/Widget/ControllerImageWidget.cpp
     UserInterface/Widget/CustomButton.cpp
+    UserInterface/OptionsDialog.ui
+    UserInterface/OptionsDialog.cpp
     UserInterface/MainDialog.ui
     UserInterface/MainDialog.cpp
     UserInterface/UIResources.qrc
@@ -27,7 +29,7 @@ set(RMG_INPUT_SOURCES
 
 add_library(RMG-Input SHARED ${RMG_INPUT_SOURCES})
 
-target_link_libraries(RMG-Input ${SDL2_LIBRARIES})
+target_link_libraries(RMG-Input RMG-Core ${SDL2_LIBRARIES})
 
 target_include_directories(RMG-Input PRIVATE 
     ${CMAKE_CURRENT_BINARY_DIR} 

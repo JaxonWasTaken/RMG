@@ -7,8 +7,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MAINWINDOW_HPP
-#define MAINWINDOW_HPP
+#ifndef MAINDIALOG_HPP
+#define MAINDIALOG_HPP
 
 #include <QDialog>
 
@@ -66,7 +66,10 @@ public slots:
 
     void on_SDLThread_DeviceFound(QString, int);
     void on_SDLThread_DeviceSearchFinished(void);
+
+private slots:
+    void on_buttonBox_clicked(QAbstractButton *);
 };
 }
 
-#endif // MAINWINDOW_HPP
+#endif // MAINDIALOG_HPP

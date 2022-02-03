@@ -8,6 +8,10 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "ControllerWidget.hpp"
+#include "UserInterface/OptionsDialog.hpp"
+
+#include <RMG-Core/Core.hpp>
+
 #include "SDL_events.h"
 #include "SDL_gamecontroller.h"
 
@@ -212,8 +216,9 @@ void ControllerWidget::on_controllerPluggedCheckBox_toggled(bool value)
         this->startButton,
         // misc UI elements
         this->deadZoneSlider,
+        this->optionsButton,
         this->setupButton,
-        this->pushButton_16,
+        this->resetButton,
         this->inputDeviceComboBox,
         this->inputDeviceRefreshButton
     };
@@ -239,6 +244,12 @@ void ControllerWidget::on_setupButton_clicked()
         //button->activateWindow();
         button->click();
     }
+}
+
+void ControllerWidget::on_optionsButton_clicked()
+{
+    OptionsDialog dialog(this);
+    dialog.exec();
 }
 
 void ControllerWidget::on_CustomButton_released(CustomButton* button)
@@ -416,40 +427,137 @@ void ControllerWidget::on_MainDialog_SdlEventPollFinished()
     this->controllerImageWidget->UpdateImage();
 }
 
-/*
-void ControllerWidget::SetButtonState(SDL_GameControllerButton sdlButton, int state)
-{
-    if (this->currentButton != nullptr)
-    {
-        if (state)
-        {
-            this->currentButton->StopTimer();
-            this->currentButton->SetButton(sdlButton);
-            this->currentButton->setText(SDL_GameControllerGetStringForButton(sdlButton));
-            this->currentButton = nullptr;
-        }
-        return;
-    }
-}
-
-void ControllerWidget::SetAxisState(SDL_GameControllerAxis axis, int16_t state)
-{
-    const double statePercentage = (double)state / SDL_AXIS_PEAK * 100;
-
-    switch (axis)
-    {
-        case SDL_CONTROLLER_AXIS_LEFTX:
-            this->controllerImageWidget->SetXAxisState(statePercentage);
-            break;
-        case SDL_CONTROLLER_AXIS_LEFTY:
-            this->controllerImageWidget->SetYAxisState(statePercentage);
-            break;
-        default:
-            break;
-    }
-}
-*/
 bool ControllerWidget::IsPluggedIn()
 {
     return this->controllerPluggedCheckBox->isChecked();
 }
+
+void ControllerWidget::SetSettingsSection(QString section)
+{
+    this->settingsSection = section;
+}
+
+void ControllerWidget::LoadSettings()
+{
+    if (this->settingsSection.isEmpty())
+    {
+        return;
+    }
+
+    const struct
+    {
+        CustomButton* button;
+        SettingsID inputTypeSettingsId;
+        SettingsID nameSettingsId;
+        SettingsID dataSettingsId;
+        SettingsID extraDataSettingsId;
+    }
+    buttonSettings[] =
+    {
+        { this->aButton, SettingsID::Input_A_InputType, SettingsID::Input_A_Name, SettingsID::Input_A_Data, SettingsID::Input_A_ExtraData },
+        { this->bButton, SettingsID::Input_B_InputType, SettingsID::Input_B_Name, SettingsID::Input_B_Data, SettingsID::Input_B_ExtraData },
+        { this->startButton, SettingsID::Input_Start_InputType, SettingsID::Input_Start_Name, SettingsID::Input_Start_Data, SettingsID::Input_Start_ExtraData },
+        { this->dpadUpButton, SettingsID::Input_DpadUp_InputType, SettingsID::Input_DpadUp_Name, SettingsID::Input_DpadUp_Data, SettingsID::Input_DpadUp_ExtraData },
+        { this->dpadDownButton, SettingsID::Input_DpadDown_InputType, SettingsID::Input_DpadDown_Name, SettingsID::Input_DpadDown_Data, SettingsID::Input_DpadDown_ExtraData },
+        { this->dpadLeftButton, SettingsID::Input_DpadLeft_InputType, SettingsID::Input_DpadLeft_Name, SettingsID::Input_DpadLeft_Data, SettingsID::Input_DpadLeft_ExtraData },
+        { this->dpadRightButton, SettingsID::Input_DpadRight_InputType, SettingsID::Input_DpadRight_Name, SettingsID::Input_DpadRight_Data, SettingsID::Input_DpadRight_ExtraData },
+        { this->cbuttonUpButton, SettingsID::Input_CButtonUp_InputType, SettingsID::Input_CButtonUp_Name, SettingsID::Input_CButtonUp_Data, SettingsID::Input_CButtonUp_ExtraData },
+        { this->cbuttonDownButton, SettingsID::Input_CButtonDown_InputType, SettingsID::Input_CButtonDown_Name, SettingsID::Input_CButtonDown_Data, SettingsID::Input_CButtonDown_ExtraData },
+        { this->cbuttonLeftButton, SettingsID::Input_CButtonLeft_InputType, SettingsID::Input_CButtonLeft_Name, SettingsID::Input_CButtonLeft_Data, SettingsID::Input_CButtonLeft_ExtraData },
+        { this->cbuttonRightButton, SettingsID::Input_CButtonRight_InputType, SettingsID::Input_CButtonRight_Name, SettingsID::Input_CButtonRight_Data, SettingsID::Input_CButtonRight_ExtraData },
+        { this->leftTriggerButton, SettingsID::Input_LeftTrigger_InputType, SettingsID::Input_LeftTrigger_Name, SettingsID::Input_LeftTrigger_Data, SettingsID::Input_LeftTrigger_ExtraData },
+        { this->rightTriggerButton, SettingsID::Input_RightTrigger_InputType, SettingsID::Input_RightTrigger_Name, SettingsID::Input_RightTrigger_Data, SettingsID::Input_RightTrigger_ExtraData },
+        { this->zTriggerButton, SettingsID::Input_ZTrigger_InputType, SettingsID::Input_ZTrigger_Name, SettingsID::Input_ZTrigger_Data, SettingsID::Input_ZTrigger_ExtraData },
+        { this->analogStickUpButton, SettingsID::Input_AnalogStickUp_InputType, SettingsID::Input_AnalogStickUp_Name, SettingsID::Input_AnalogStickUp_Data, SettingsID::Input_AnalogStickUp_ExtraData },
+        { this->analogStickDownButton, SettingsID::Input_AnalogStickDown_InputType, SettingsID::Input_AnalogStickDown_Name, SettingsID::Input_AnalogStickDown_Data, SettingsID::Input_AnalogStickDown_ExtraData },
+        { this->analogStickLeftButton, SettingsID::Input_AnalogStickLeft_InputType, SettingsID::Input_AnalogStickLeft_Name, SettingsID::Input_AnalogStickLeft_Data, SettingsID::Input_AnalogStickLeft_ExtraData },
+        { this->analogStickRightButton, SettingsID::Input_AnalogStickRight_InputType, SettingsID::Input_AnalogStickRight_Name, SettingsID::Input_AnalogStickRight_Data, SettingsID::Input_AnalogStickRight_ExtraData },
+    };
+
+    std::string section = this->settingsSection.toStdString();
+
+    if (!CoreSettingsSectionExists(section))
+    {
+        return;
+    }
+
+    this->controllerPluggedCheckBox->setChecked(CoreSettingsGetBoolValue(SettingsID::Input_PluggedIn, section));
+
+    /*CoreSettingsSetValue(SettingsID::Input_PluggedIn, section, this->IsPluggedIn());
+    CoreSettingsSetValue(SettingsID::Input_DeviceType, section, 1);
+    CoreSettingsSetValue(SettingsID::Input_DeviceName, section, deviceName.toStdString());
+    CoreSettingsSetValue(SettingsID::Input_DeviceNum, section, deviceNum);
+    CoreSettingsSetValue(SettingsID::Input_Pak, section, 0);
+    CoreSettingsSetValue(SettingsID::Input_RemoveDuplicateMappings, section, false);*/
+
+    for (auto& buttonSetting : buttonSettings)
+    {
+        enum InputType type = (InputType)CoreSettingsGetIntValue(buttonSetting.inputTypeSettingsId, section);
+        std::string    name = CoreSettingsGetStringValue(buttonSetting.nameSettingsId, section);
+        int            data = CoreSettingsGetIntValue(buttonSetting.dataSettingsId, section);
+        int            extraData = CoreSettingsGetIntValue(buttonSetting.extraDataSettingsId, section);
+
+        buttonSetting.button->SetInputData(type, data, extraData, QString::fromStdString(name));
+    }
+
+}
+
+void ControllerWidget::SaveSettings()
+{
+    if (this->settingsSection.isEmpty())
+    {
+        return;
+    }
+    
+    const struct
+    {
+        CustomButton* button;
+        SettingsID inputTypeSettingsId;
+        SettingsID nameSettingsId;
+        SettingsID dataSettingsId;
+        SettingsID extraDataSettingsId;
+    }
+    buttonSettings[] =
+    {
+        { this->aButton, SettingsID::Input_A_InputType, SettingsID::Input_A_Name, SettingsID::Input_A_Data, SettingsID::Input_A_ExtraData },
+        { this->bButton, SettingsID::Input_B_InputType, SettingsID::Input_B_Name, SettingsID::Input_B_Data, SettingsID::Input_B_ExtraData },
+        { this->startButton, SettingsID::Input_Start_InputType, SettingsID::Input_Start_Name, SettingsID::Input_Start_Data, SettingsID::Input_Start_ExtraData },
+        { this->dpadUpButton, SettingsID::Input_DpadUp_InputType, SettingsID::Input_DpadUp_Name, SettingsID::Input_DpadUp_Data, SettingsID::Input_DpadUp_ExtraData },
+        { this->dpadDownButton, SettingsID::Input_DpadDown_InputType, SettingsID::Input_DpadDown_Name, SettingsID::Input_DpadDown_Data, SettingsID::Input_DpadDown_ExtraData },
+        { this->dpadLeftButton, SettingsID::Input_DpadLeft_InputType, SettingsID::Input_DpadLeft_Name, SettingsID::Input_DpadLeft_Data, SettingsID::Input_DpadLeft_ExtraData },
+        { this->dpadRightButton, SettingsID::Input_DpadRight_InputType, SettingsID::Input_DpadRight_Name, SettingsID::Input_DpadRight_Data, SettingsID::Input_DpadRight_ExtraData },
+        { this->cbuttonUpButton, SettingsID::Input_CButtonUp_InputType, SettingsID::Input_CButtonUp_Name, SettingsID::Input_CButtonUp_Data, SettingsID::Input_CButtonUp_ExtraData },
+        { this->cbuttonDownButton, SettingsID::Input_CButtonDown_InputType, SettingsID::Input_CButtonDown_Name, SettingsID::Input_CButtonDown_Data, SettingsID::Input_CButtonDown_ExtraData },
+        { this->cbuttonLeftButton, SettingsID::Input_CButtonLeft_InputType, SettingsID::Input_CButtonLeft_Name, SettingsID::Input_CButtonLeft_Data, SettingsID::Input_CButtonLeft_ExtraData },
+        { this->cbuttonRightButton, SettingsID::Input_CButtonRight_InputType, SettingsID::Input_CButtonRight_Name, SettingsID::Input_CButtonRight_Data, SettingsID::Input_CButtonRight_ExtraData },
+        { this->leftTriggerButton, SettingsID::Input_LeftTrigger_InputType, SettingsID::Input_LeftTrigger_Name, SettingsID::Input_LeftTrigger_Data, SettingsID::Input_LeftTrigger_ExtraData },
+        { this->rightTriggerButton, SettingsID::Input_RightTrigger_InputType, SettingsID::Input_RightTrigger_Name, SettingsID::Input_RightTrigger_Data, SettingsID::Input_RightTrigger_ExtraData },
+        { this->zTriggerButton, SettingsID::Input_ZTrigger_InputType, SettingsID::Input_ZTrigger_Name, SettingsID::Input_ZTrigger_Data, SettingsID::Input_ZTrigger_ExtraData },
+        { this->analogStickUpButton, SettingsID::Input_AnalogStickUp_InputType, SettingsID::Input_AnalogStickUp_Name, SettingsID::Input_AnalogStickUp_Data, SettingsID::Input_AnalogStickUp_ExtraData },
+        { this->analogStickDownButton, SettingsID::Input_AnalogStickDown_InputType, SettingsID::Input_AnalogStickDown_Name, SettingsID::Input_AnalogStickDown_Data, SettingsID::Input_AnalogStickDown_ExtraData },
+        { this->analogStickLeftButton, SettingsID::Input_AnalogStickLeft_InputType, SettingsID::Input_AnalogStickLeft_Name, SettingsID::Input_AnalogStickLeft_Data, SettingsID::Input_AnalogStickLeft_ExtraData },
+        { this->analogStickRightButton, SettingsID::Input_AnalogStickRight_InputType, SettingsID::Input_AnalogStickRight_Name, SettingsID::Input_AnalogStickRight_Data, SettingsID::Input_AnalogStickRight_ExtraData },
+    };
+
+    QString deviceName;
+    int deviceNum;
+    std::string section = this->settingsSection.toStdString();
+
+    this->GetCurrentInputDevice(deviceName, deviceNum);
+
+    CoreSettingsSetValue(SettingsID::Input_PluggedIn, section, this->IsPluggedIn());
+    CoreSettingsSetValue(SettingsID::Input_DeviceType, section, 1);
+    CoreSettingsSetValue(SettingsID::Input_DeviceName, section, deviceName.toStdString());
+    CoreSettingsSetValue(SettingsID::Input_DeviceNum, section, deviceNum);
+    CoreSettingsSetValue(SettingsID::Input_Pak, section, 0);
+    CoreSettingsSetValue(SettingsID::Input_RemoveDuplicateMappings, section, false);
+
+    for (auto& buttonSetting : buttonSettings)
+    {
+        CoreSettingsSetValue(buttonSetting.inputTypeSettingsId, section, (int)buttonSetting.button->GetInputType());
+        CoreSettingsSetValue(buttonSetting.nameSettingsId, section, buttonSetting.button->text().toStdString());
+        CoreSettingsSetValue(buttonSetting.dataSettingsId, section, buttonSetting.button->GetInputData());
+        CoreSettingsSetValue(buttonSetting.extraDataSettingsId, section, buttonSetting.button->GetExtraInputData());
+    }
+}
+
