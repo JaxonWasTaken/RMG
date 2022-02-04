@@ -41,7 +41,6 @@ MainDialog::MainDialog(QWidget* parent, Thread::SDLThread* sdlThread) : QDialog(
     for (int i = 0; i < this->tabWidget->count(); i++)
     {
         Widget::ControllerWidget* widget = new Widget::ControllerWidget(this, this->eventFilter);
-        widget->installEventFilter(this->eventFilter);
         widget->SetSettingsSection("Rosalie's Mupen GUI - Input Plugin Profile " + QString::number(i));
         widget->LoadSettings();
         this->tabWidget->widget(i)->layout()->addWidget(widget);

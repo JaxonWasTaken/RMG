@@ -34,8 +34,18 @@ ControllerWidget::ControllerWidget(QWidget* parent, EventFilter* eventFilter) : 
     this->analogStickRangeSlider->setValue(100);
     this->controllerPluggedCheckBox->setChecked(false);
 
-    this->controllerImageWidget->installEventFilter(eventFilter);
-    this->dpadUpButton->setFocus(Qt::FocusReason::OtherFocusReason);
+    // install eventFilter to all children and parents
+    this->installEventFilter(eventFilter);
+    for (auto& widget : this->children())
+    {
+        widget->installEventFilter(eventFilter);
+    }
+    QObject* parentObject = this->parent();
+    while (parentObject != nullptr)
+    {
+        parentObject->installEventFilter(eventFilter);
+        parentObject = parentObject->parent();
+    }
 
     this->DrawControllerImage();
 
