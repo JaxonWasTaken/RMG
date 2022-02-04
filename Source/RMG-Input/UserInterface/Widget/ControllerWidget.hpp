@@ -18,6 +18,8 @@ using namespace UserInterface::Widget;
 #include "ui_ControllerWidget.h"
 #include "common.hpp"
 
+#include <RMG-Core/Core.hpp>
+
 #include <SDL.h>
 
 namespace UserInterface
@@ -46,8 +48,18 @@ private:
         CustomButton* buttonWidget;
     };
 
+    struct buttonSettingMapping
+    {
+        CustomButton* button;
+        SettingsID inputTypeSettingsId;
+        SettingsID nameSettingsId;
+        SettingsID dataSettingsId;
+        SettingsID extraDataSettingsId;
+    };
+
     QList<buttonWidgetMapping> buttonWidgetMappings;
     QList<axisWidgetMapping> joystickWidgetMappings;
+    QList<buttonSettingMapping> buttonSettingMappings;
 
     void initializeButtons();
 public:
@@ -64,7 +76,9 @@ public:
     bool IsPluggedIn();
 
     void SetSettingsSection(QString section);
+
     void LoadSettings();
+    void SaveDefaultSettings();
     void SaveSettings();
 
 private slots:

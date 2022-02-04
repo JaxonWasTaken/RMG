@@ -32,12 +32,12 @@ private:
 	ControllerWidget* controllerWidget = nullptr;
 	int currentCountDownNum = 0;
 	enum InputType inputType = InputType::Invalid;
-	int inputData = -1;
-	int extraInputData = -1;
+	int inputData = 0;
+	int extraInputData = 0;
 
 	enum InputType savedInputType = InputType::Invalid;
-	int savedInputData = -1;
-	int savedExtraInputData = -1;
+	int savedInputData = 0;
+	int savedExtraInputData = 0;
 	QString savedText;
 public:
 	CustomButton(QWidget* parent);
