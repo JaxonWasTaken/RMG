@@ -13,6 +13,8 @@
 #include "CustomButton.hpp"
 #include "ControllerImageWidget.hpp"
 
+#include "UserInterface/EventFilter.hpp"
+
 using namespace UserInterface::Widget;
 
 #include "ui_ControllerWidget.h"
@@ -62,8 +64,11 @@ private:
     QList<buttonSettingMapping> buttonSettingMappings;
 
     void initializeButtons();
+
+    bool isCurrentDeviceKeyboard();
+
 public:
-    ControllerWidget(QWidget* parent);
+    ControllerWidget(QWidget* parent, EventFilter* eventFilter);
     ~ControllerWidget();
 
     void AddInputDevice(QString deviceName, int deviceNum);

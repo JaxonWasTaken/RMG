@@ -15,6 +15,7 @@
 #include "ui_MainDialog.h"
 #include "Widget/ControllerWidget.hpp"
 #include "Thread/SDLThread.hpp"
+#include "EventFilter.hpp"
 
 namespace UserInterface
 {
@@ -46,6 +47,8 @@ private:
     QString currentDeviceName;
     int currentDeviceNum = 0;
 
+    EventFilter* eventFilter;
+
     void addInputDevice(QString, int);
     void removeInputDevice(QString, int);
 
@@ -68,6 +71,9 @@ public slots:
     void on_SDLThread_DeviceSearchFinished(void);
 
 private slots:
+    void on_EventFilter_KeyPressed(QKeyEvent *);
+    void on_EventFilter_KeyReleased(QKeyEvent *);
+
     void on_buttonBox_clicked(QAbstractButton *);
 };
 }

@@ -18,11 +18,13 @@ set(RMG_INPUT_SOURCES
     UserInterface/Widget/ControllerWidget.cpp
     UserInterface/Widget/ControllerImageWidget.cpp
     UserInterface/Widget/CustomButton.cpp
+    UserInterface/EventFilter.cpp
     UserInterface/OptionsDialog.ui
     UserInterface/OptionsDialog.cpp
     UserInterface/MainDialog.ui
     UserInterface/MainDialog.cpp
     UserInterface/UIResources.qrc
+    Utilities/QtKeyToSdl2Key.cpp
     Thread/SDLThread.cpp
     main.cpp
 )

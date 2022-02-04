@@ -9,6 +9,7 @@
  */
 #include "MainDialog.hpp"
 #include "Widget/ControllerWidget.hpp"
+#include "Utilities/QtKeyToSdl2Key.hpp"
 
 #include <RMG-Core/Core.hpp>
 
@@ -29,10 +30,18 @@ MainDialog::MainDialog(QWidget* parent, Thread::SDLThread* sdlThread) : QDialog(
     connect(this->sdlThread, &Thread::SDLThread::OnDeviceSearchFinished, this,
         &MainDialog::on_SDLThread_DeviceSearchFinished);
 
+    // setup EventFilter
+    this->eventFilter = new EventFilter(this);
+    connect(this->eventFilter, &EventFilter::on_EventFilter_KeyPressed, this,
+            &MainDialog::on_EventFilter_KeyPressed);
+    connect(this->eventFilter, &EventFilter::on_EventFilter_KeyReleased, this,
+            &MainDialog::on_EventFilter_KeyReleased);
+
     // each tab needs its own ControllerWidget
     for (int i = 0; i < this->tabWidget->count(); i++)
     {
-        Widget::ControllerWidget* widget = new Widget::ControllerWidget(this);
+        Widget::ControllerWidget* widget = new Widget::ControllerWidget(this, this->eventFilter);
+        widget->installEventFilter(this->eventFilter);
         widget->SetSettingsSection("Rosalie's Mupen GUI - Input Plugin Profile " + QString::number(i));
         widget->LoadSettings();
         this->tabWidget->widget(i)->layout()->addWidget(widget);
@@ -238,6 +247,44 @@ void MainDialog::on_SDLThread_DeviceSearchFinished(void)
 
     // we can refresh safely again
     this->updatingDeviceList = false;
+}
+
+void MainDialog::on_EventFilter_KeyPressed(QKeyEvent *event)
+{
+    int key = Utilities::QtKeyToSdl2Key(event->key());
+    int mod = Utilities::QtModKeyToSdl2ModKey(event->modifiers());
+
+    SDL_KeyboardEvent keyboardEvent;
+    keyboardEvent.state = SDL_PRESSED;
+    keyboardEvent.type = SDL_KEYDOWN;
+    keyboardEvent.keysym.scancode = (SDL_Scancode)key;
+    keyboardEvent.keysym.sym = (SDL_Keycode)key;
+    keyboardEvent.keysym.mod = mod;
+
+    SDL_Event sdlEvent;
+    sdlEvent.key = keyboardEvent;
+    sdlEvent.type = SDL_KEYDOWN;
+
+    SDL_PushEvent(&sdlEvent);
+}
+
+void MainDialog::on_EventFilter_KeyReleased(QKeyEvent *event)
+{
+    int key = Utilities::QtKeyToSdl2Key(event->key());
+    int mod = Utilities::QtModKeyToSdl2ModKey(event->modifiers());
+
+    SDL_KeyboardEvent keyboardEvent;
+    keyboardEvent.state = SDL_RELEASED;
+    keyboardEvent.type = SDL_KEYUP;
+    keyboardEvent.keysym.scancode = (SDL_Scancode)key;
+    keyboardEvent.keysym.sym = (SDL_Keycode)key;
+    keyboardEvent.keysym.mod = mod;
+
+    SDL_Event sdlEvent;
+    sdlEvent.key = keyboardEvent;
+    sdlEvent.type = SDL_KEYUP;
+
+    SDL_PushEvent(&sdlEvent);
 }
 
 void MainDialog::on_buttonBox_clicked(QAbstractButton *button)

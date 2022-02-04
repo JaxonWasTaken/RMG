@@ -26,13 +26,16 @@
 
 using namespace UserInterface::Widget;
 
-ControllerWidget::ControllerWidget(QWidget* parent) : QWidget(parent)
+ControllerWidget::ControllerWidget(QWidget* parent, EventFilter* eventFilter) : QWidget(parent)
 {
     this->setupUi(this);
 
     this->deadZoneSlider->setValue(15);
     this->analogStickRangeSlider->setValue(100);
     this->controllerPluggedCheckBox->setChecked(false);
+
+    this->controllerImageWidget->installEventFilter(eventFilter);
+    this->dpadUpButton->setFocus(Qt::FocusReason::OtherFocusReason);
 
     this->DrawControllerImage();
 
@@ -125,6 +128,11 @@ void ControllerWidget::initializeButtons()
         button->Initialize(this);
         button->setText(" ");
     }
+}
+
+bool ControllerWidget::isCurrentDeviceKeyboard()
+{
+    return this->inputDeviceComboBox->currentData().toInt() == -1;
 }
 
 void ControllerWidget::AddInputDevice(QString deviceName, int deviceNum)
@@ -438,6 +446,84 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
                 }
             }
         } break;
+
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+        { // keyboard button
+
+            // make sure a keyboard is selected
+            if (!this->isCurrentDeviceKeyboard())
+            {
+                break;
+            }
+
+            const SDL_Scancode sdlButton = (SDL_Scancode)event->key.keysym.scancode;
+            const bool sdlButtonPressed = (event->type == SDL_KEYDOWN);
+
+            // handle button widget
+            if (this->currentButton != nullptr)
+            {
+                if (sdlButtonPressed)
+                {
+                    this->currentButton->SetInputData(
+                        InputType::Keyboard, 
+                        sdlButton,
+                        0,
+                        SDL_GetScancodeName(sdlButton)
+                    );
+                    this->currentButton = nullptr;
+                }
+                break;
+            }
+
+            // update controller button state
+            for (auto& button : this->buttonWidgetMappings)
+            {
+                if (button.buttonWidget->GetInputType() == InputType::Keyboard &&
+                    button.buttonWidget->GetInputData() == sdlButton)
+                {
+                    this->controllerImageWidget->SetButtonState(button.button, sdlButtonPressed);
+                }
+            }
+
+            // update controller analog stick state
+            for (auto& joystick : this->joystickWidgetMappings)
+            {
+                if (joystick.buttonWidget->GetInputType() == InputType::Keyboard &&
+                    joystick.buttonWidget->GetInputData() == sdlButton)
+                {
+                    switch (joystick.direction)
+                    {
+                        case InputAxisDirection::Up:
+                        case InputAxisDirection::Down:
+                        {
+                            const int value = (
+                                joystick.direction == InputAxisDirection::Up ?
+                                    100 :
+                                    -100
+                            );
+                            this->controllerImageWidget->SetYAxisState(sdlButtonPressed ? value : 0);
+                        } break;
+
+                        case InputAxisDirection::Left:
+                        case InputAxisDirection::Right:
+                        {
+                            const int value = (
+                                joystick.direction == InputAxisDirection::Left ?
+                                    100 :
+                                    -100
+                            );
+                            this->controllerImageWidget->SetXAxisState(sdlButtonPressed ? value : 0);
+                        } break;
+
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            break;
+        }
 
         default:
             break;
