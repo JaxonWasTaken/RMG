@@ -320,6 +320,11 @@ void ControllerWidget::on_setupButton_clicked()
     }
 }
 
+void ControllerWidget::on_resetButton_clicked()
+{
+    this->LoadSettings();
+}
+
 void ControllerWidget::on_optionsButton_clicked()
 {
     OptionsDialog dialog(this);

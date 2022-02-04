@@ -99,6 +99,7 @@ private slots:
     void on_controllerPluggedCheckBox_toggled(bool value);
 
     void on_setupButton_clicked();
+    void on_resetButton_clicked();
     void on_optionsButton_clicked();
 
 public slots:
