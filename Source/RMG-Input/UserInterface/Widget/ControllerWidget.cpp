@@ -145,6 +145,40 @@ bool ControllerWidget::isCurrentDeviceKeyboard()
     return this->inputDeviceComboBox->currentData().toInt() == -1;
 }
 
+void ControllerWidget::disableAllChildren()
+{
+    for (auto& object : this->children())
+    {
+        if (!object->inherits("QWidget"))
+        {
+            continue;
+        }
+
+        QWidget* widget = (QWidget*)object;
+        if (widget->isEnabled())
+        {
+            widget->setEnabled(false);
+        }
+    }
+}
+
+void ControllerWidget::enableAllChildren()
+{
+    for (auto& object : this->children())
+    {
+        if (!object->inherits("QWidget"))
+        {
+            continue;
+        }
+
+        QWidget* widget = (QWidget*)object;
+        if (!widget->isEnabled())
+        {
+            widget->setEnabled(true);
+        }
+    }
+}
+
 void ControllerWidget::AddInputDevice(QString deviceName, int deviceNum)
 {
     QString name = deviceName;
@@ -303,6 +337,8 @@ void ControllerWidget::on_CustomButton_released(CustomButton* button)
     this->currentButton = button;
     button->SaveState();
     button->StartTimer();
+    
+    this->disableAllChildren();
 }
 
 void ControllerWidget::on_CustomButton_TimerFinished(CustomButton* button)
@@ -313,6 +349,13 @@ void ControllerWidget::on_CustomButton_TimerFinished(CustomButton* button)
     }
 
     button->RestoreState();
+
+    this->enableAllChildren();
+}
+
+void ControllerWidget::on_CustomButton_DataSet(CustomButton* button)
+{
+    this->enableAllChildren();
 }
 
 void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)

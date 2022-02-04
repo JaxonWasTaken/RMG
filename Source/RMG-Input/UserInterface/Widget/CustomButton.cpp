@@ -53,6 +53,7 @@ void CustomButton::SetInputData(enum InputType type, int value, int extraValue, 
     this->extraInputData = extraValue;
     this->setText(name);
     this->StopTimer();
+    emit this->controllerWidget->on_CustomButton_DataSet(this);
 }
 
 enum InputType CustomButton::GetInputType()

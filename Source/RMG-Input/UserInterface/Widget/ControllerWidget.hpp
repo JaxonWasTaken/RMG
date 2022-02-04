@@ -67,6 +67,9 @@ private:
 
     bool isCurrentDeviceKeyboard();
 
+    void disableAllChildren();
+    void enableAllChildren();
+
 public:
     ControllerWidget(QWidget* parent, EventFilter* eventFilter);
     ~ControllerWidget();
@@ -101,7 +104,8 @@ private slots:
 public slots:
     void on_CustomButton_released(CustomButton* button);
     void on_CustomButton_TimerFinished(CustomButton* button);
-
+    void on_CustomButton_DataSet(CustomButton* button);
+    
     void on_MainDialog_SdlEvent(SDL_Event* event);
     void on_MainDialog_SdlEventPollFinished();
 signals:
