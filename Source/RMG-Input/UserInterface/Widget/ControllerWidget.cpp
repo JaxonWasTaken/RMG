@@ -10,10 +10,9 @@
 #include "ControllerWidget.hpp"
 #include "UserInterface/OptionsDialog.hpp"
 
-#include <RMG-Core/Core.hpp>
+#include "common.hpp"
 
-#include "SDL_events.h"
-#include "SDL_gamecontroller.h"
+#include <RMG-Core/Core.hpp>
 
 #include <QPixmap>
 #include <QResizeEvent>
@@ -22,17 +21,11 @@
 #include <QSvgRenderer>
 #include <iostream>
 
-#define SDL_AXIS_PEAK 32768
-
 using namespace UserInterface::Widget;
 
 ControllerWidget::ControllerWidget(QWidget* parent, EventFilter* eventFilter) : QWidget(parent)
 {
     this->setupUi(this);
-
-    this->deadZoneSlider->setValue(15);
-    this->analogStickRangeSlider->setValue(100);
-    this->controllerPluggedCheckBox->setChecked(false);
 
     // install eventFilter to all children and parents
     this->installEventFilter(eventFilter);

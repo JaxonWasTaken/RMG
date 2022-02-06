@@ -1,6 +1,4 @@
 #include "EventFilter.hpp"
-#include <qcoreevent.h>
-#include <qobject.h>
 
 using namespace UserInterface;
 

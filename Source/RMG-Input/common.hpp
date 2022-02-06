@@ -10,6 +10,8 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
+#define SDL_AXIS_PEAK 32767
+
 enum class N64ControllerButton
 {
     A = 0,
@@ -37,12 +39,27 @@ enum class InputType
     Invalid
 };
 
+enum class InputDeviceType
+{
+    Joystick,
+    Gamepad,
+    Keyboard,
+    Invalid
+};
+
 enum class InputAxisDirection
 {
     Up = 0,
     Down,
     Left,
     Right
+};
+
+enum class N64ControllerPak
+{
+    MemoryPak = 0,
+    RumblePak,
+    None,
 };
 
 #endif // COMMON_HPP
