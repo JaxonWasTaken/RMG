@@ -67,7 +67,7 @@ MainDialog::MainDialog(QWidget* parent, Thread::SDLThread* sdlThread) : QDialog(
 
 MainDialog::~MainDialog()
 {
-    this->closeController();
+    this->closeInputDevice();
 }
 
 void MainDialog::addInputDevice(QString deviceName, int deviceNum)
@@ -86,7 +86,7 @@ void MainDialog::removeInputDevice(QString deviceName, int deviceNum)
     }
 }
 
-void MainDialog::openController(QString deviceName, int deviceNum)
+void MainDialog::openInputDevice(QString deviceName, int deviceNum)
 {
     // we don't need to open a keyboard
     if (deviceNum == -1)
@@ -96,40 +96,27 @@ void MainDialog::openController(QString deviceName, int deviceNum)
         return;
     }
 
-    currentController = SDL_GameControllerOpen(deviceNum);
-    currentDeviceNum = deviceNum;
-
-    /* maybe throw this in SDLThread??
-
-    // find each controller    
-    for (int i = 0; i < SDL_NumJoysticks(); i++)
+    if (SDL_IsGameController(deviceNum) == SDL_TRUE)
     {
-        const char* name = nullptr;
-
-        // skip non-gamecontrollers
-        if (!SDL_IsGameController(i))
-        {
-            continue;
-        }
-        
-        name = SDL_GameControllerNameForIndex(i);
-        if (name != nullptr)
-        {
-            if (deviceName == QString(name) &&
-                deviceNum == i)
-            {
-                currentController = SDL_GameControllerOpen(i);
-                currentDeviceNum = deviceNum;
-                currentDeviceName = deviceName;
-                return;
-            }
-        }
+        currentJoystick = nullptr;
+        currentController = SDL_GameControllerOpen(deviceNum);
     }
-    */
+    else
+    {
+        currentJoystick = SDL_JoystickOpen(deviceNum);
+        currentController = nullptr;
+    }
+    currentDeviceNum = deviceNum;
 }
 
-void MainDialog::closeController()
+void MainDialog::closeInputDevice()
 {
+    if (this->currentJoystick != nullptr)
+    {
+        SDL_JoystickClose(this->currentJoystick);
+        this->currentJoystick = nullptr;
+    }
+
     if (this->currentController != nullptr)
     {
         SDL_GameControllerClose(this->currentController);
@@ -167,10 +154,11 @@ void MainDialog::on_InputPollTimer_triggered()
 
     // check if controller has been disconnected,
     // if so, keep trying to re-open it
-    if (!SDL_GameControllerGetAttached(this->currentController))
+    if ((this->currentJoystick != nullptr && !SDL_JoystickGetAttached(this->currentJoystick)) ||
+        (this->currentController != nullptr && !SDL_GameControllerGetAttached(this->currentController)))
     {
-        this->closeController();
-        this->openController(this->currentDeviceName, this->currentDeviceNum);
+        this->closeInputDevice();
+        this->openInputDevice(this->currentDeviceName, this->currentDeviceNum);
     }
 
     // process SDL events
@@ -185,8 +173,8 @@ void MainDialog::on_InputPollTimer_triggered()
 
 void MainDialog::on_ControllerWidget_CurrentInputDeviceChanged(QString deviceName, int deviceNum)
 {
-    this->closeController();
-    this->openController(deviceName, deviceNum);
+    this->closeInputDevice();
+    this->openInputDevice(deviceName, deviceNum);
 }
 
 void MainDialog::on_ControllerWidget_RefreshInputDevicesButtonClicked()
@@ -209,11 +197,11 @@ void MainDialog::on_tabWidget_currentChanged(int index)
     Widget::ControllerWidget* controllerWidget = controllerWidgets.at(index);
     controllerWidget->ClearControllerImage();
 
-    this->closeController();
+    this->closeInputDevice();
 
     controllerWidget->GetCurrentInputDevice(deviceName, deviceNum);
 
-    this->openController(deviceName, deviceNum);
+    this->openInputDevice(deviceName, deviceNum);
 }
 
 void MainDialog::on_SDLThread_DeviceFound(QString deviceName, int deviceNum)

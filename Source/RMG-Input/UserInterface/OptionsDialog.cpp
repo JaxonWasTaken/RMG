@@ -9,14 +9,35 @@
  */
 #include "OptionsDialog.hpp"
 
+#include <RMG-Core/Core.hpp>
+
 using namespace UserInterface;
 
-OptionsDialog::OptionsDialog(QWidget* parent) : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint)
+OptionsDialog::OptionsDialog(QWidget* parent, QString settingsSection) : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint)
 {
     this->setupUi(this);
+
+    this->settingsSection = settingsSection;
+
+    std::string section = settingsSection.toStdString();
+
+    this->removeDuplicateMappingsCheckbox->setChecked(CoreSettingsGetBoolValue(SettingsID::Input_RemoveDuplicateMappings, section));
+    this->controllerPakComboBox->setCurrentIndex(CoreSettingsGetIntValue(SettingsID::Input_Pak, section));
 }
 
-void OptionsDialog::on_buttonBox_clicked(QAbstractButton *)
+void OptionsDialog::on_buttonBox_clicked(QAbstractButton *button)
 {
+
+    QPushButton *pushButton = (QPushButton *)button;
+    QPushButton *okButton = this->buttonBox->button(QDialogButtonBox::Ok);
+
+    if (pushButton == okButton)
+    {
+        std::string section = this->settingsSection.toStdString();
+
+        CoreSettingsSetValue(SettingsID::Input_RemoveDuplicateMappings, section, this->removeDuplicateMappingsCheckbox->isChecked());
+        CoreSettingsSetValue(SettingsID::Input_Pak, section, this->controllerPakComboBox->currentIndex());
+    }
+    
     this->accept();
 }

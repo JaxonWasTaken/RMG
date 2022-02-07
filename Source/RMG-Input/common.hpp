@@ -36,6 +36,9 @@ enum class InputType
     Keyboard = -1,
     GamepadButton,
     GamepadAxis,
+    JoystickButton,
+    JoystickAxis,
+    JoystickHat,
     Invalid
 };
 

@@ -21,7 +21,10 @@ class OptionsDialog : public QDialog, private Ui::OptionsDialog
 Q_OBJECT
 
 public:
-    OptionsDialog(QWidget *parent);
+    OptionsDialog(QWidget *parent, QString settingsSection);
+
+private:
+    QString settingsSection;
 
 private slots:
     void on_buttonBox_clicked(QAbstractButton *);

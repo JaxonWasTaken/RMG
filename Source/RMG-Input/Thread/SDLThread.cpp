@@ -45,7 +45,6 @@ void SDLThread::SetAction(SDLThreadAction action)
     this->currentAction = action;
 }
 
-#include <iostream>
 void SDLThread::run(void)
 {
     // try to initialize SDL
@@ -55,9 +54,9 @@ void SDLThread::run(void)
         // SDL also needs the video subsystem
         // to be initialized to get SDL_NumJoysticks
         // to work properly on windows
-        SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO) < 0)
+        SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO | SDL_INIT_HAPTIC) < 0)
 #else
-        SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) < 0)
+        SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) < 0)
 #endif
     { // nothing we can do now
         return;

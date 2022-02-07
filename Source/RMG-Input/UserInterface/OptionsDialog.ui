@@ -25,7 +25,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QCheckBox" name="checkBox">
+        <widget class="QCheckBox" name="removeDuplicateMappingsCheckbox">
          <property name="text">
           <string>Remove Duplicate Mappings</string>
          </property>
@@ -39,20 +39,20 @@
         </widget>
        </item>
        <item>
-        <widget class="QComboBox" name="comboBox">
+        <widget class="QComboBox" name="controllerPakComboBox">
+         <item>
+          <property name="text">
+           <string>Memory</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Rumble</string>
+          </property>
+         </item>
          <item>
           <property name="text">
            <string>None</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Mem Pak</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Rumble Pak</string>
           </property>
          </item>
         </widget>

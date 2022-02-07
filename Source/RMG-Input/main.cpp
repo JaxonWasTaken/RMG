@@ -31,6 +31,16 @@
 #define NUM_CONTROLLERS 4
 #define MAX_AXIS_VALUE  85
 
+#define RD_GETSTATUS        0x00   // get status
+#define RD_READKEYS         0x01   // read button values
+#define RD_READPAK          0x02   // read from controllerpack
+#define RD_WRITEPAK         0x03   // write to controllerpack
+#define RD_RESETCONTROLLER  0xff   // reset controller
+#define RD_READEEPROM       0x04   // read eeprom
+#define RD_WRITEEPROM       0x05   // write eeprom
+
+#define PAK_IO_RUMBLE       0xC000 // the address where rumble-commands are sent to
+
 //
 // Local Structures
 //
@@ -51,9 +61,9 @@ struct InputProfile
     N64ControllerPak ControllerPak = N64ControllerPak::None;
 
     // input device information
-    int DeviceType    = 0;
+    InputDeviceType DeviceType = InputDeviceType::Invalid;
     std::string DeviceName;
-    int DeviceNum     = -1;
+    int DeviceNum = -1;
 
     // input device
     Utilities::InputDevice InputDevice;
@@ -132,7 +142,8 @@ static void load_settings(void)
         profile->PluggedIn = CoreSettingsGetBoolValue(SettingsID::Input_PluggedIn, section);
         profile->DeadzoneValue = CoreSettingsGetIntValue(SettingsID::Input_Deadzone, section);
         profile->RangeValue = CoreSettingsGetIntValue(SettingsID::Input_Range, section);
-        profile->DeviceType = CoreSettingsGetIntValue(SettingsID::Input_DeviceType, section);
+        profile->ControllerPak = (N64ControllerPak)CoreSettingsGetIntValue(SettingsID::Input_Pak, section);
+        profile->DeviceType = (InputDeviceType)CoreSettingsGetIntValue(SettingsID::Input_DeviceType, section);
         profile->DeviceName = CoreSettingsGetStringValue(SettingsID::Input_DeviceName, section);
         profile->DeviceNum = CoreSettingsGetIntValue(SettingsID::Input_DeviceNum, section);
 
@@ -164,10 +175,7 @@ static void open_controllers(void)
     {
         InputProfile* profile = &l_InputProfiles[i];
 
-        if (profile->InputDevice.HasOpenDevice())
-        {
-            profile->InputDevice.CloseDevice();
-        }
+        profile->InputDevice.CloseDevice();
 
         if (profile->DeviceNum != -1)
         {
@@ -181,11 +189,8 @@ static void close_controllers(void)
     for (int i = 0; i < NUM_CONTROLLERS; i++)
     {
         InputProfile* profile = &l_InputProfiles[i];
-
-        if (profile->InputDevice.HasOpenDevice())
-        {
-            profile->InputDevice.CloseDevice();
-        }
+        
+        profile->InputDevice.CloseDevice();
     }
 }
 
@@ -202,6 +207,15 @@ static int get_button_state(InputProfile* profile, InputMapping* inputMapping)
             int axis_value = SDL_GameControllerGetAxis(profile->InputDevice.GetGameControllerHandle(), (SDL_GameControllerAxis)inputMapping->Data);
             return (abs(axis_value) >= (SDL_AXIS_PEAK / 2) && (inputMapping->ExtraData ? axis_value > 0 : axis_value < 0)) ? 1 : 0;
         };
+        case InputType::JoystickButton:
+        {
+            return SDL_JoystickGetButton(profile->InputDevice.GetJoystickHandle(), inputMapping->Data);
+        };
+        case InputType::JoystickAxis:
+        {
+            int axis_value = SDL_JoystickGetAxis(profile->InputDevice.GetJoystickHandle(), inputMapping->Data);
+            return (abs(axis_value) >= (SDL_AXIS_PEAK / 2) && (inputMapping->ExtraData ? axis_value > 0 : axis_value < 0)) ? 1 : 0;
+        }
         case InputType::Keyboard:
         {
             return l_KeyboardState[inputMapping->Data] ? 1 : 0;
@@ -221,25 +235,36 @@ static int get_axis_state(InputProfile* profile, InputMapping* inputMapping, int
         {
             int buttonState = SDL_GameControllerGetButton(profile->InputDevice.GetGameControllerHandle(), (SDL_GameControllerButton)inputMapping->Data);
             return buttonState ? MAX_AXIS_VALUE * direction : value;
-        };
+        } break;
         case InputType::GamepadAxis:
         {
             int axis_value = SDL_GameControllerGetAxis(profile->InputDevice.GetGameControllerHandle(), (SDL_GameControllerAxis)inputMapping->Data);
             if (inputMapping->ExtraData ? axis_value > 0 : axis_value < 0)
             {
-                axis_value = ((float)((float)axis_value / SDL_AXIS_PEAK * 100) * ((float)MAX_AXIS_VALUE / 100));
+                axis_value = ((float)((float)axis_value / SDL_AXIS_PEAK * 100) * ((float)MAX_AXIS_VALUE / 100 * profile->RangeValue / 100));
                 axis_value = abs(axis_value) * direction;
                 return axis_value;
             }
-            else
+        } break;
+        case InputType::JoystickButton:
+        {
+            int buttonState =  SDL_JoystickGetButton(profile->InputDevice.GetJoystickHandle(), inputMapping->Data);
+            return buttonState ? MAX_AXIS_VALUE * direction : value;
+        } break;
+        case InputType::JoystickAxis:
+        {
+            int axis_value = SDL_JoystickGetAxis(profile->InputDevice.GetJoystickHandle(), inputMapping->Data);
+            if (inputMapping->ExtraData ? axis_value > 0 : axis_value < 0)
             {
-                return value;
+                axis_value = ((float)((float)axis_value / SDL_AXIS_PEAK * 100) * ((float)MAX_AXIS_VALUE / 100 * profile->RangeValue / 100));
+                axis_value = abs(axis_value) * direction;
+                return axis_value;
             }
-        };
+        } break;
         case InputType::Keyboard:
         {
             return l_KeyboardState[inputMapping->Data] ? MAX_AXIS_VALUE * direction : value;
-        };
+        } break;
         default:
             break;
     }
@@ -247,10 +272,33 @@ static int get_axis_state(InputProfile* profile, InputMapping* inputMapping, int
     return value;
 }
 
-static bool is_in_deadzone(int x, int y, int deadzoneValue)
+static bool is_deadzone(int x, int y, int deadzoneValue)
 {
-    const double dist = sqrt(pow(x, 2) + pow(y, 2));
-    return dist <= deadzoneValue;
+    return sqrt(pow(x, 2) + pow(y, 2)) <= deadzoneValue;
+}
+
+static unsigned char data_crc(unsigned char *data, int length)
+{
+    unsigned char remainder = data[0];
+
+    int byte = 1;
+    unsigned char bit = 0;
+
+    while (byte <= length)
+    {
+        int highBit = ((remainder & 0x80) != 0);
+        remainder = remainder << 1;
+
+        remainder += (byte < length && data[byte] & (0x80 >> bit )) ? 1 : 0;
+
+        remainder ^= (highBit) ? 0x85 : 0;
+
+        bit++;
+        byte += bit/8;
+        bit %= 8;
+    }
+
+    return remainder;
 }
 
 //
@@ -271,6 +319,11 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
 
     l_SDLThread = new Thread::SDLThread(nullptr);
     l_SDLThread->start();
+
+    for (int i = 0; i < NUM_CONTROLLERS; i++)
+    {
+        l_InputProfiles[i].InputDevice.SetSDLThread(l_SDLThread);
+    }
 
     load_settings();
 
@@ -328,7 +381,6 @@ EXPORT m64p_error CALL PluginGetVersion(m64p_plugin_type *pluginType, int *plugi
 // Custom Plugin Functions
 //
 
-#include <iostream>
 EXPORT m64p_error CALL PluginConfig()
 {
     if (l_SDLThread == nullptr)
@@ -361,12 +413,70 @@ EXPORT m64p_error CALL PluginConfig()
 
 EXPORT void CALL ControllerCommand(int Control, unsigned char* Command)
 {
+    unsigned char* data = &Command[5];
 
+    if (Control == -1)
+    {
+        return;
+    }
+
+    InputProfile* profile = &l_InputProfiles[Control];
+
+    switch (Command[2])
+    {
+        case RD_GETSTATUS:
+        case RD_READKEYS:
+            break;
+        case RD_READPAK:
+            if (profile->ControllerPak == N64ControllerPak::RumblePak)
+            {
+                unsigned int dwAddress = (Command[3] << 8) + (Command[4] & 0xE0);
+
+                if ((dwAddress >= 0x8000 ) && (dwAddress < 0x9000 ))
+                {
+                    memset(data, 0x80, 32);
+                }
+                else
+                {
+                    memset(data, 0x00, 32);
+                }
+
+                data[32] = data_crc(data, 32);
+            }
+            break;
+        case RD_WRITEPAK:
+            if (profile->ControllerPak == N64ControllerPak::RumblePak)
+            {
+                unsigned int dwAddress = (Command[3] << 8) + (Command[4] & 0xE0);
+                if (dwAddress == PAK_IO_RUMBLE) 
+                {
+                    if (*data) 
+                    {
+                        profile->InputDevice.StartRumble();
+                    }
+                    else
+                    {
+                        profile->InputDevice.StopRumble();
+                    }
+                }
+                data[32] = data_crc( data, 32 );
+            }
+            break;
+        case RD_RESETCONTROLLER:
+        case RD_READEEPROM:
+        case RD_WRITEEPROM:
+            break;
+    }
 }
 
 EXPORT void CALL GetKeys(int Control, BUTTONS* Keys)
 {
     InputProfile* profile = &l_InputProfiles[Control];
+
+    if (!profile->PluggedIn)
+    {
+        return;
+    }
 
     Keys->A_BUTTON     = get_button_state(profile, &profile->Button_A);
     Keys->B_BUTTON     = get_button_state(profile, &profile->Button_B);
@@ -389,7 +499,7 @@ EXPORT void CALL GetKeys(int Control, BUTTONS* Keys)
     Keys->X_AXIS       = get_axis_state(profile, &profile->AnalogStick_Right, 1, Keys->X_AXIS);
 
     // take deadzone into account
-    if (is_in_deadzone(Keys->X_AXIS, Keys->Y_AXIS, profile->DeadzoneValue))
+    if (is_deadzone(Keys->X_AXIS, Keys->Y_AXIS, ((float)MAX_AXIS_VALUE / 100 * profile->DeadzoneValue)))
     {
         Keys->Y_AXIS = 0;
         Keys->X_AXIS = 0;
@@ -401,10 +511,23 @@ EXPORT void CALL InitiateControllers(CONTROL_INFO ControlInfo)
     for (int i = 0; i < NUM_CONTROLLERS; i++)
     {
         InputProfile* profile = &l_InputProfiles[i];
+        int plugin = PLUGIN_NONE;
+
+        switch (profile->ControllerPak)
+        {
+            case N64ControllerPak::MemoryPak:
+                plugin = PLUGIN_MEMPAK;
+                break;
+            case N64ControllerPak::RumblePak:
+                plugin = PLUGIN_RAW;
+                break;
+            default:
+                plugin = PLUGIN_NONE;
+                break;
+        }
 
         ControlInfo.Controls[i].Present = profile->PluggedIn ? 1 : 0;
-        // TODO
-        ControlInfo.Controls[i].Plugin = PLUGIN_MEMPAK;
+        ControlInfo.Controls[i].Plugin = plugin;
         ControlInfo.Controls[i].RawData = 0;
     }
 

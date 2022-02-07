@@ -43,6 +43,7 @@ private:
     bool updatingDeviceList = false;
 
     QList<Widget::ControllerWidget*> controllerWidgets;
+    SDL_Joystick* currentJoystick = nullptr;
     SDL_GameController* currentController = nullptr;
     QString currentDeviceName;
     int currentDeviceNum = 0;
@@ -52,8 +53,8 @@ private:
     void addInputDevice(QString, int);
     void removeInputDevice(QString, int);
 
-    void openController(QString, int);
-    void closeController();
+    void openInputDevice(QString, int);
+    void closeInputDevice();
 
 public:
     MainDialog(QWidget *parent, Thread::SDLThread*);

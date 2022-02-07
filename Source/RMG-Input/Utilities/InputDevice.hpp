@@ -12,34 +12,58 @@
 
 #include "common.hpp"
 
+#include <QObject>
 #include <string>
 #include <SDL.h>
 
+#include "Thread/SDLThread.hpp"
+
 namespace Utilities
 {
-class InputDevice
+class InputDevice : public QObject
 {
+Q_OBJECT
 public:
     InputDevice();
     ~InputDevice();
 
-    InputDeviceType     GetDeviceType();
-    SDL_Joystick*       GetJoystickHandle();
-    SDL_GameController* GetGameControllerHandle();
+    void SetSDLThread(Thread::SDLThread* sdlThread);
+
+    InputDeviceType     GetDeviceType(void);
+    SDL_Joystick*       GetJoystickHandle(void);
+    SDL_GameController* GetGameControllerHandle(void);
+
+    bool StartRumble(void);
+    bool StopRumble(void);
+
+    // returns whether the device is attached
+    bool IsAttached(void);
 
     // returns whether a device has been opened
-    bool HasOpenDevice();
+    bool HasOpenDevice(void);
 
     // tries to open device with given name & num
     bool OpenDevice(std::string name, int num);
 
     // tries to close opened device
-    bool CloseDevice();
+    bool CloseDevice(void);
 
 private:
+    struct SDLDevice
+    {
+        std::string name;
+        int number;
+    };
+
     InputDeviceType     deviceType = InputDeviceType::Invalid;
     SDL_Joystick*       joystick = nullptr;
     SDL_GameController* gameController = nullptr;
+    SDL_Haptic*         haptic = nullptr;
+
+    Thread::SDLThread* sdlThread = nullptr;
+    std::vector<SDLDevice> foundDevices;
+private slots:
+    void on_SDLThread_DeviceFound(QString, int);
 };
 } // namespace Utilities
 
