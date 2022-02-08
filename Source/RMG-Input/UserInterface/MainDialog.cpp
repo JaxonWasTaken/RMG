@@ -88,11 +88,16 @@ void MainDialog::removeInputDevice(QString deviceName, int deviceNum)
 
 void MainDialog::openInputDevice(QString deviceName, int deviceNum)
 {
+    SDL_JoystickID joystickId;
+    Widget::ControllerWidget* controllerWidget;
+    controllerWidget = controllerWidgets.at(this->tabWidget->currentIndex());
+
     // we don't need to open a keyboard
     if (deviceNum == -1)
     {
         currentDeviceName = "";
         currentDeviceNum = -1;
+        controllerWidget->SetCurrentJoystickID(-1);
         return;
     }
 
@@ -107,6 +112,8 @@ void MainDialog::openInputDevice(QString deviceName, int deviceNum)
         currentController = nullptr;
     }
     currentDeviceNum = deviceNum;
+    joystickId = SDL_JoystickGetDeviceInstanceID(deviceNum);
+    controllerWidget->SetCurrentJoystickID(joystickId);
 }
 
 void MainDialog::closeInputDevice()

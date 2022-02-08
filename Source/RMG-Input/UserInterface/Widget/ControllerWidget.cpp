@@ -363,9 +363,35 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
     {
         case SDL_CONTROLLERBUTTONDOWN:
         case SDL_CONTROLLERBUTTONUP:
-        { // gamepad button
-            const SDL_GameControllerButton sdlButton = (SDL_GameControllerButton)event->cbutton.button;
-            const bool sdlButtonPressed = (event->type == SDL_CONTROLLERBUTTONDOWN);
+        case SDL_JOYBUTTONDOWN:
+        case SDL_JOYBUTTONUP:
+        { // gamepad & joystick button
+            InputType inputType = InputType::Invalid;
+            int sdlButton = 0;
+            bool sdlButtonPressed = false;
+            QString sdlButtonName;
+
+            if ((event->type == SDL_CONTROLLERBUTTONDOWN) ||
+                (event->type == SDL_CONTROLLERBUTTONUP))
+            { // gamepad button
+                inputType = InputType::GamepadButton;
+                sdlButton = event->cbutton.button;
+                sdlButtonPressed = (event->type == SDL_CONTROLLERBUTTONDOWN);
+                sdlButtonName = SDL_GameControllerGetStringForButton((SDL_GameControllerButton)sdlButton);
+            }
+            else
+            { // joystick button
+                inputType = InputType::JoystickButton;
+                sdlButton = event->jbutton.button;
+                sdlButtonPressed = (event->type == SDL_JOYBUTTONDOWN);
+                sdlButtonName = "button " + QString::number(sdlButton);
+            }
+
+            // make sure we have the right joystick
+            if (event->cbutton.which != this->currentJoystickId)
+            {
+                break;
+            }
 
             // handle button widget
             if (this->currentButton != nullptr)
@@ -373,10 +399,10 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
                 if (sdlButtonPressed)
                 {
                     this->currentButton->SetInputData(
-                        InputType::GamepadButton, 
+                        inputType, 
                         sdlButton,
                         0,
-                        SDL_GameControllerGetStringForButton(sdlButton)
+                        sdlButtonName
                     );
                     this->currentButton = nullptr;
                 }
@@ -386,7 +412,7 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
             // update controller button state
             for (auto& button : this->buttonWidgetMappings)
             {
-                if (button.buttonWidget->GetInputType() == InputType::GamepadButton &&
+                if (button.buttonWidget->GetInputType() == inputType &&
                     button.buttonWidget->GetInputData() == sdlButton)
                 {
                     this->controllerImageWidget->SetButtonState(button.button, sdlButtonPressed);
@@ -396,7 +422,7 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
             // update controller analog stick state
             for (auto& joystick : this->joystickWidgetMappings)
             {
-                if (joystick.buttonWidget->GetInputType() == InputType::GamepadButton &&
+                if (joystick.buttonWidget->GetInputType() == inputType &&
                     joystick.buttonWidget->GetInputData() == sdlButton)
                 {
                     switch (joystick.direction)
@@ -431,158 +457,41 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
         } break;
 
         case SDL_CONTROLLERAXISMOTION:
-        { // gamepad axis
-            const SDL_GameControllerAxis sdlAxis = (SDL_GameControllerAxis)event->caxis.axis;
-            const int sdlAxisValue = event->caxis.value;
-            // make sure the user presses the axis
-            // more than 50%, otherwise we might detect
-            // an accidental axis movement (due to i.e deadzone)
-            const bool sdlAxisButtonPressed = (abs(sdlAxisValue) >= (SDL_AXIS_PEAK / 2));
-            const int sdlAxisDirection = (sdlAxisValue > 0 ? 1 : 0);
-            QString name = SDL_GameControllerGetStringForAxis(sdlAxis);
-            name.append(sdlAxisValue > 0 ? "+" : "-");
-
-            // handle button widget
-            if (this->currentButton != nullptr)
-            {
-                if (sdlAxisButtonPressed)
-                {
-                    this->currentButton->SetInputData(
-                        InputType::GamepadAxis, 
-                        sdlAxis,
-                        sdlAxisDirection,
-                        name
-                    );
-                    this->currentButton = nullptr;
-                }
-                break;
-            }
-
-            // update controller button state
-            for (auto& button : this->buttonWidgetMappings)
-            {
-                if (button.buttonWidget->GetInputType() == InputType::GamepadAxis &&
-                    button.buttonWidget->GetInputData() == sdlAxis &&
-                    button.buttonWidget->GetExtraInputData() == sdlAxisDirection)
-                {
-                    this->controllerImageWidget->SetButtonState(button.button, sdlAxisButtonPressed);
-                }
-            }
-
-            // update controller analog stick state
-            for (auto& joystick : this->joystickWidgetMappings)
-            {
-                if (joystick.buttonWidget->GetInputType() == InputType::GamepadAxis &&
-                    joystick.buttonWidget->GetInputData() == sdlAxis &&
-                    joystick.buttonWidget->GetExtraInputData() == sdlAxisDirection)
-                {
-                    const int value = -(double)((double)sdlAxisValue / SDL_AXIS_PEAK * 100);
-
-                    switch (joystick.direction)
-                    {
-                        case InputAxisDirection::Up:
-                        case InputAxisDirection::Down:
-                        {
-                            this->controllerImageWidget->SetYAxisState(value);
-                        } break;
-
-                        case InputAxisDirection::Left:
-                        case InputAxisDirection::Right:
-                        {
-                            this->controllerImageWidget->SetXAxisState(value);
-                        } break;
-
-                        default:
-                            break;
-                    }
-                }
-            }
-        } break;
-
-        case SDL_JOYBUTTONDOWN:
-        case SDL_JOYBUTTONUP:
-        { // joystick button
-            const int sdlButton = event->jbutton.button;
-            const bool sdlButtonPressed = (event->type == SDL_JOYBUTTONDOWN);
-            QString name = "button ";
-            name.append(QString::number(sdlButton));
-
-            // handle button widget
-            if (this->currentButton != nullptr)
-            {
-                if (sdlButtonPressed)
-                {
-                    this->currentButton->SetInputData(
-                        InputType::JoystickButton, 
-                        sdlButton,
-                        0,
-                        name
-                    );
-                    this->currentButton = nullptr;
-                }
-                break;
-            }
-
-            // update controller button state
-            for (auto& button : this->buttonWidgetMappings)
-            {
-                if (button.buttonWidget->GetInputType() == InputType::JoystickButton &&
-                    button.buttonWidget->GetInputData() == sdlButton)
-                {
-                    this->controllerImageWidget->SetButtonState(button.button, sdlButtonPressed);
-                }
-            }
-
-            // update controller analog stick state
-            for (auto& joystick : this->joystickWidgetMappings)
-            {
-                if (joystick.buttonWidget->GetInputType() == InputType::JoystickButton &&
-                    joystick.buttonWidget->GetInputData() == sdlButton)
-                {
-                    switch (joystick.direction)
-                    {
-                        case InputAxisDirection::Up:
-                        case InputAxisDirection::Down:
-                        {
-                            const int value = (
-                                joystick.direction == InputAxisDirection::Up ?
-                                    100 :
-                                    -100
-                            );
-                            this->controllerImageWidget->SetYAxisState(sdlButtonPressed ? value : 0);
-                        } break;
-
-                        case InputAxisDirection::Left:
-                        case InputAxisDirection::Right:
-                        {
-                            const int value = (
-                                joystick.direction == InputAxisDirection::Left ?
-                                    100 :
-                                    -100
-                            );
-                            this->controllerImageWidget->SetXAxisState(sdlButtonPressed ? value : 0);
-                        } break;
-
-                        default:
-                            break;
-                    }
-                }
-            }
-
-        } break;
-
         case SDL_JOYAXISMOTION:
-        { // joystick axis
-            const int sdlAxis = event->jaxis.axis;
-            const int sdlAxisValue = event->jaxis.value;
+        { // gamepad & joystick axis
+            InputType inputType = InputType::Invalid;
+            int sdlAxis = 0;
+            int sdlAxisValue = 0;
+            QString sdlAxisName;
+
+            if (event->type == SDL_CONTROLLERAXISMOTION)
+            { // gamepad axis
+                inputType = InputType::GamepadAxis;
+                sdlAxis = event->caxis.axis;
+                sdlAxisValue = event->caxis.value;
+                sdlAxisName = SDL_GameControllerGetStringForAxis((SDL_GameControllerAxis)sdlAxis);
+                sdlAxisName += sdlAxisValue > 0 ? "+" : "-";
+            }
+            else
+            { // joystick axis
+                inputType = InputType::JoystickAxis;
+                sdlAxis = event->jaxis.axis;
+                sdlAxisValue = event->jaxis.value;
+                sdlAxisName = "axis " + QString::number(sdlAxis);
+                sdlAxisName += sdlAxisValue > 0 ? "+" : "-";
+            }
+
             // make sure the user presses the axis
             // more than 50%, otherwise we might detect
             // an accidental axis movement (due to i.e deadzone)
             const bool sdlAxisButtonPressed = (abs(sdlAxisValue) >= (SDL_AXIS_PEAK / 2));
             const int sdlAxisDirection = (sdlAxisValue > 0 ? 1 : 0);
-            QString name = "axis ";
-            name.append(QString::number(sdlAxis));
-            name.append(sdlAxisValue > 0 ? "+" : "-");
+
+            // make sure we have the right joystick
+            if (event->caxis.which != this->currentJoystickId)
+            {
+                break;
+            }
 
             // handle button widget
             if (this->currentButton != nullptr)
@@ -590,10 +499,10 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
                 if (sdlAxisButtonPressed)
                 {
                     this->currentButton->SetInputData(
-                        InputType::JoystickAxis, 
+                        inputType, 
                         sdlAxis,
                         sdlAxisDirection,
-                        name
+                        sdlAxisName
                     );
                     this->currentButton = nullptr;
                 }
@@ -603,7 +512,7 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
             // update controller button state
             for (auto& button : this->buttonWidgetMappings)
             {
-                if (button.buttonWidget->GetInputType() == InputType::JoystickAxis &&
+                if (button.buttonWidget->GetInputType() == inputType &&
                     button.buttonWidget->GetInputData() == sdlAxis &&
                     button.buttonWidget->GetExtraInputData() == sdlAxisDirection)
                 {
@@ -614,81 +523,11 @@ void ControllerWidget::on_MainDialog_SdlEvent(SDL_Event* event)
             // update controller analog stick state
             for (auto& joystick : this->joystickWidgetMappings)
             {
-                if (joystick.buttonWidget->GetInputType() == InputType::JoystickAxis &&
+                if (joystick.buttonWidget->GetInputType() == inputType &&
                     joystick.buttonWidget->GetInputData() == sdlAxis &&
                     joystick.buttonWidget->GetExtraInputData() == sdlAxisDirection)
                 {
                     const int value = -(double)((double)sdlAxisValue / SDL_AXIS_PEAK * 100);
-
-                    switch (joystick.direction)
-                    {
-                        case InputAxisDirection::Up:
-                        case InputAxisDirection::Down:
-                        {
-                            this->controllerImageWidget->SetYAxisState(value);
-                        } break;
-
-                        case InputAxisDirection::Left:
-                        case InputAxisDirection::Right:
-                        {
-                            this->controllerImageWidget->SetXAxisState(value);
-                        } break;
-
-                        default:
-                            break;
-                    }
-                }
-            }
-        } break;
-
-        case SDL_JOYHATMOTION:
-        { // joystick hat
-            const int sdlHat = event->jhat.hat;
-            const int sdlHatValue = event->jhat.value;
-            // make sure the user presses the axis
-            // more than 50%, otherwise we might detect
-            // an accidental axis movement (due to i.e deadzone)
-            const bool sdlHatButtonPressed = (abs(sdlHatValue) >= (SDL_AXIS_PEAK / 2));
-            const int sdlHatDirection = (sdlHatValue > 0 ? 1 : 0);
-            QString name = "hat ";
-            name.append(QString::number(sdlHat));
-            name.append(sdlHatValue > 0 ? "+" : "-");
-
-            // handle button widget
-            if (this->currentButton != nullptr)
-            {
-                if (sdlHatButtonPressed) 
-                {
-                    this->currentButton->SetInputData(
-                        InputType::JoystickHat, 
-                        sdlHat,
-                        sdlHatDirection,
-                        name
-                    );
-                    this->currentButton = nullptr;
-                }
-                break;
-            }
-
-            // update controller button state
-            for (auto& button : this->buttonWidgetMappings)
-            {
-                if (button.buttonWidget->GetInputType() == InputType::JoystickHat &&
-                    button.buttonWidget->GetInputData() == sdlHat &&
-                    button.buttonWidget->GetExtraInputData() == sdlHatDirection)
-                {
-                    this->controllerImageWidget->SetButtonState(button.button, sdlHatButtonPressed);
-                }
-            }
-
-            // update controller analog stick state
-            for (auto& joystick : this->joystickWidgetMappings)
-            {
-                if (joystick.buttonWidget->GetInputType() == InputType::JoystickHat &&
-                    joystick.buttonWidget->GetInputData() == sdlHat &&
-                    joystick.buttonWidget->GetExtraInputData() == sdlHatDirection)
-                {
-                    const int value = -(double)((double)sdlHatValue / SDL_AXIS_PEAK * 100);
 
                     switch (joystick.direction)
                     {
@@ -893,5 +732,10 @@ void ControllerWidget::SaveSettings()
         CoreSettingsSetValue(buttonSetting.dataSettingsId, section, buttonSetting.button->GetInputData());
         CoreSettingsSetValue(buttonSetting.extraDataSettingsId, section, buttonSetting.button->GetExtraInputData());
     }
+}
+
+void ControllerWidget::SetCurrentJoystickID(SDL_JoystickID joystickId)
+{
+    this->currentJoystickId = joystickId;
 }
 

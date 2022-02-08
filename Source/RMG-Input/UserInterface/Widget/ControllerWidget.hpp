@@ -70,6 +70,8 @@ private:
     void disableAllChildren();
     void enableAllChildren();
 
+    SDL_JoystickID currentJoystickId = -1;
+
 public:
     ControllerWidget(QWidget* parent, EventFilter* eventFilter);
     ~ControllerWidget();
@@ -88,6 +90,8 @@ public:
     void LoadSettings();
     void SaveDefaultSettings();
     void SaveSettings();
+
+    void SetCurrentJoystickID(SDL_JoystickID joystickId);
 
 private slots:
     void on_deadZoneSlider_valueChanged(int value);
