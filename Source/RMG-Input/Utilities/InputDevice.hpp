@@ -55,6 +55,12 @@ private:
     {
         std::string name;
         int number;
+
+        bool operator== (SDLDevice other)
+        {
+            return other.name == name &&
+                other.number == number;
+        }
     };
 
     SDL_Joystick*       joystick = nullptr;

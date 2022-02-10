@@ -130,7 +130,6 @@ void InputDevice::on_SDLThread_DeviceFound(QString name, int number)
     this->foundDevicesWithNameMatch.push_back(device);
 }
 
-#include <iostream>
 void InputDevice::on_SDLThread_DeviceSearchFinished(void)
 {
     if (!this->isOpeningDevice)
@@ -147,7 +146,21 @@ void InputDevice::on_SDLThread_DeviceSearchFinished(void)
         return;
     }
 
-    auto device = this->foundDevicesWithNameMatch.at(0);
+    // try to find exact match
+    SDLDevice device;
+    device.name = this->desiredDeviceName;
+    device.number = this->desiredDeviceNum;
+
+    auto iter = std::find(this->foundDevicesWithNameMatch.begin(), this->foundDevicesWithNameMatch.end(), device);
+    if (iter != this->foundDevicesWithNameMatch.end())
+    { // use exact match
+        device.name = iter->name;
+        device.number = iter->number;
+    }
+    else
+    { // no exact match, use first with name match
+        device = this->foundDevicesWithNameMatch.at(0);
+    }
 
     this->joystick = SDL_JoystickOpen(device.number);
     if (SDL_IsGameController(device.number))
