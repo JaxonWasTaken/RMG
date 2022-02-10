@@ -80,12 +80,17 @@ void SDLThread::run(void)
 
                 for (int i = 0; i < SDL_NumJoysticks(); i++)
                 {
-                    if (!SDL_IsGameController(i))
-                    { // skip for now
-                        continue;
+                    const char* name;
+
+                    if (SDL_IsGameController(i))
+                    {
+                        name = SDL_GameControllerNameForIndex(i);
+                    }
+                    else
+                    {
+                        name = SDL_JoystickNameForIndex(i);
                     }
 
-                    const char* name = SDL_GameControllerNameForIndex(i);
                     if (name != nullptr)
                     {
                         emit this->OnInputDeviceFound(QString(name), i);
