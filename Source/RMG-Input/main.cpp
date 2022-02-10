@@ -61,9 +61,9 @@ struct InputProfile
     N64ControllerPak ControllerPak = N64ControllerPak::None;
 
     // input device information
-    InputDeviceType DeviceType = InputDeviceType::Invalid;
     std::string DeviceName;
     int DeviceNum = -1;
+    std::chrono::time_point<std::chrono::high_resolution_clock> LastDeviceCheckTime = std::chrono::high_resolution_clock::now();
 
     // input device
     Utilities::InputDevice InputDevice;
@@ -143,7 +143,6 @@ static void load_settings(void)
         profile->DeadzoneValue = CoreSettingsGetIntValue(SettingsID::Input_Deadzone, section);
         profile->RangeValue = CoreSettingsGetIntValue(SettingsID::Input_Range, section);
         profile->ControllerPak = (N64ControllerPak)CoreSettingsGetIntValue(SettingsID::Input_Pak, section);
-        profile->DeviceType = (InputDeviceType)CoreSettingsGetIntValue(SettingsID::Input_DeviceType, section);
         profile->DeviceName = CoreSettingsGetStringValue(SettingsID::Input_DeviceName, section);
         profile->DeviceNum = CoreSettingsGetIntValue(SettingsID::Input_DeviceNum, section);
 
@@ -476,6 +475,30 @@ EXPORT void CALL GetKeys(int Control, BUTTONS* Keys)
     if (!profile->PluggedIn)
     {
         return;
+    }
+
+    // check if device has been disconnected,
+    // if it has, try to open it again,
+    // only do this every 2 seconds to prevent lag
+    const auto currentTime = std::chrono::high_resolution_clock::now();
+    const int secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(currentTime - profile->LastDeviceCheckTime).count();
+    if (secondsPassed >= 2)
+    {
+        profile->LastDeviceCheckTime = currentTime;
+
+        if (profile->DeviceNum != -1)
+        {
+            if (profile->InputDevice.IsOpeningDevice())
+            {
+                return;
+            }
+
+            if (!profile->InputDevice.HasOpenDevice() || !profile->InputDevice.IsAttached())
+            {
+                profile->InputDevice.OpenDevice(profile->DeviceName, profile->DeviceNum);
+                return;
+            }
+        }
     }
 
     Keys->A_BUTTON     = get_button_state(profile, &profile->Button_A);

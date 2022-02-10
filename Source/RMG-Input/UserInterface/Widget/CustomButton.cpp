@@ -34,6 +34,16 @@ void CustomButton::Initialize(QWidget* widget)
     });
 }
 
+void CustomButton::Clear()
+{
+    this->inputType = InputType::Invalid;
+    this->inputData = 0;
+    this->extraInputData = 0;
+    this->savedInputData = 0;
+    this->savedExtraInputData = 0;
+    this->setText(" ");
+}
+
 void CustomButton::StartTimer()
 {
     this->currentCountDownNum = 5;

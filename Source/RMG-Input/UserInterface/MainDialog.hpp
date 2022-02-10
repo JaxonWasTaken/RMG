@@ -63,7 +63,7 @@ public:
 public slots:
     void on_InputPollTimer_triggered();
 
-    void on_ControllerWidget_CurrentInputDeviceChanged(QString, int);
+    void on_ControllerWidget_CurrentInputDeviceChanged(ControllerWidget*, QString, int);
     void on_ControllerWidget_RefreshInputDevicesButtonClicked();
    
     void on_tabWidget_currentChanged(int);

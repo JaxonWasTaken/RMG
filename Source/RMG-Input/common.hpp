@@ -42,14 +42,6 @@ enum class InputType
     Invalid
 };
 
-enum class InputDeviceType
-{
-    Joystick,
-    Gamepad,
-    Keyboard,
-    Invalid
-};
-
 enum class InputAxisDirection
 {
     Up = 0,

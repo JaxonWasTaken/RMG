@@ -26,11 +26,8 @@ void InputDevice::SetSDLThread(Thread::SDLThread* sdlThread)
     this->sdlThread = sdlThread;
     connect(this->sdlThread, &Thread::SDLThread::OnInputDeviceFound, this,
         &InputDevice::on_SDLThread_DeviceFound);
-}
-
-InputDeviceType InputDevice::GetDeviceType()
-{
-    return this->deviceType;
+    connect(this->sdlThread, &Thread::SDLThread::OnDeviceSearchFinished, this,
+        &InputDevice::on_SDLThread_DeviceSearchFinished);
 }
 
 SDL_Joystick* InputDevice::GetJoystickHandle()
@@ -70,52 +67,29 @@ bool InputDevice::IsAttached(void)
 
 bool InputDevice::HasOpenDevice()
 {
-    return this->joystick != nullptr || this->gameController != nullptr;
+    return this->hasOpenDevice;
 }
 
-bool InputDevice::OpenDevice(std::string name, int num)
+void InputDevice::OpenDevice(std::string name, int num)
 {
-    this->sdlThread->SetAction(SDLThreadAction::GetInputDevices);
-
-    // wait until it's done searching
-    while (this->sdlThread->GetCurrentAction() == SDLThreadAction::GetInputDevices)
+    // wait until SDLThread is done first
+    while (this->sdlThread->GetCurrentAction() != SDLThreadAction::None)
     {
         QThread::msleep(50);
     }
 
-    bool foundNameMatch = false;
+    this->foundDevicesWithNameMatch.clear();
+    this->desiredDeviceName = name;
+    this->desiredDeviceNum = num;
+    this->isOpeningDevice = true;
 
-    do
-    {
-        for (const auto& device : this->foundDevices)
-        {
-            if (device.name == name)
-            {
-                if (device.number == num || foundNameMatch)
-                {
-                    this->joystick = SDL_JoystickOpen(device.number);
-                    this->deviceType = InputDeviceType::Joystick;
-                    if (SDL_IsGameController(device.number))
-                    {
-                        this->gameController = SDL_GameControllerOpen(device.number);
-                        this->deviceType = InputDeviceType::Gamepad;
-                    }
-                    this->haptic = SDL_HapticOpenFromJoystick(this->joystick);
-                    if (this->haptic != nullptr)
-                    {
-                        SDL_HapticRumbleInit(this->haptic);
-                    }
-                    foundNameMatch = false;
-                }
-                else
-                {
-                    foundNameMatch = true;
-                }
-            }
-        }
-    } while (foundNameMatch);
+    // tell SDLThread to query input devices
+    this->sdlThread->SetAction(SDLThreadAction::GetInputDevices);
+}
 
-    return this->joystick != nullptr || this->gameController == nullptr;
+bool InputDevice::IsOpeningDevice(void)
+{
+    return this->isOpeningDevice;
 }
 
 bool InputDevice::CloseDevice()
@@ -143,9 +117,49 @@ bool InputDevice::CloseDevice()
 
 void InputDevice::on_SDLThread_DeviceFound(QString name, int number)
 {
+    if ((!this->isOpeningDevice) || 
+        (this->desiredDeviceName != name.toStdString()))
+    {
+        return;
+    }
+
     SDLDevice device;
     device.name = name.toStdString();
     device.number = number;
 
-    this->foundDevices.push_back(device);
+    this->foundDevicesWithNameMatch.push_back(device);
+}
+
+#include <iostream>
+void InputDevice::on_SDLThread_DeviceSearchFinished(void)
+{
+    if (!this->isOpeningDevice)
+    {
+        return;
+    }
+
+    this->CloseDevice();
+
+    if (this->foundDevicesWithNameMatch.empty())
+    {
+        this->isOpeningDevice = false;
+        this->hasOpenDevice = false;
+        return;
+    }
+
+    auto device = this->foundDevicesWithNameMatch.at(0);
+
+    this->joystick = SDL_JoystickOpen(device.number);
+    if (SDL_IsGameController(device.number))
+    {
+        this->gameController = SDL_GameControllerOpen(device.number);
+    }
+    this->haptic = SDL_HapticOpenFromJoystick(this->joystick);
+    if (this->haptic != nullptr)
+    {
+        SDL_HapticRumbleInit(this->haptic);
+    }
+
+    this->isOpeningDevice = false;
+    this->hasOpenDevice = this->joystick != nullptr || this->gameController == nullptr;
 }

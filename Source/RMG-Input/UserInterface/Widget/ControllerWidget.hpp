@@ -62,13 +62,19 @@ private:
     QList<buttonWidgetMapping> buttonWidgetMappings;
     QList<axisWidgetMapping> joystickWidgetMappings;
     QList<buttonSettingMapping> buttonSettingMappings;
+    QList<CustomButton*> setupButtonWidgets;
+    int currentSetupButtonWidgetIndex = 0;
+    bool currentInSetup = false;
 
     void initializeButtons();
 
     bool isCurrentDeviceKeyboard();
+    bool isCurrentDeviceNotFound();
 
     void disableAllChildren();
     void enableAllChildren();
+
+    void removeDuplicates(CustomButton* button);
 
     SDL_JoystickID currentJoystickId = -1;
 
@@ -78,11 +84,12 @@ public:
 
     void AddInputDevice(QString deviceName, int deviceNum);
     void RemoveInputDevice(QString deviceName, int deviceNum);
+    void CheckInputDeviceSettings();
 
     void DrawControllerImage();
     void ClearControllerImage();
 
-    void GetCurrentInputDevice(QString& deviceName, int& deviceNum);
+    void GetCurrentInputDevice(QString& deviceName, int& deviceNum, bool ignoreDeviceNotFound = false);
     bool IsPluggedIn();
 
     void SetSettingsSection(QString section);
@@ -114,7 +121,7 @@ public slots:
     void on_MainDialog_SdlEvent(SDL_Event* event);
     void on_MainDialog_SdlEventPollFinished();
 signals:
-    void CurrentInputDeviceChanged(QString deviceName, int deviceNum);
+    void CurrentInputDeviceChanged(ControllerWidget* widget, QString deviceName, int deviceNum);
     void RefreshInputDevicesButtonClicked();
 };
 }

@@ -178,10 +178,26 @@ void MainDialog::on_InputPollTimer_triggered()
     controllerWidget->on_MainDialog_SdlEventPollFinished();
 }
 
-void MainDialog::on_ControllerWidget_CurrentInputDeviceChanged(QString deviceName, int deviceNum)
+void MainDialog::on_ControllerWidget_CurrentInputDeviceChanged(ControllerWidget* widget, QString deviceName, int deviceNum)
 {
+    Widget::ControllerWidget* currentWidget;
+    currentWidget = controllerWidgets.at(this->tabWidget->currentIndex());
+
+    // ignore input device changes
+    // when it's not the current controllerwidget
+    if (widget != currentWidget)
+    {
+        return;
+    }
+
     this->closeInputDevice();
-    this->openInputDevice(deviceName, deviceNum);
+
+    // only open device,
+    // when it's not a keyboard
+    if (deviceNum != -1)
+    {
+        this->openInputDevice(deviceName, deviceNum);
+    }
 }
 
 void MainDialog::on_ControllerWidget_RefreshInputDevicesButtonClicked()
@@ -192,7 +208,7 @@ void MainDialog::on_ControllerWidget_RefreshInputDevicesButtonClicked()
     }
 
     this->updatingDeviceList = true;
-    inputDeviceList.clear();
+    this->inputDeviceList.clear();
     this->sdlThread->SetAction(SDLThreadAction::GetInputDevices);
 }
 
@@ -208,7 +224,12 @@ void MainDialog::on_tabWidget_currentChanged(int index)
 
     controllerWidget->GetCurrentInputDevice(deviceName, deviceNum);
 
-    this->openInputDevice(deviceName, deviceNum);
+    // only open device,
+    // when it's not a keyboard
+    if (deviceNum != -1)
+    {
+        this->openInputDevice(deviceName, deviceNum);
+    }
 }
 
 void MainDialog::on_SDLThread_DeviceFound(QString deviceName, int deviceNum)
@@ -241,6 +262,13 @@ void MainDialog::on_SDLThread_DeviceSearchFinished(void)
 
     // we can refresh safely again
     this->updatingDeviceList = false;
+
+    // device search has been completed,
+    // signal that each widget can check device settings
+    for (auto& controllerWidget : this->controllerWidgets)
+    {
+        controllerWidget->CheckInputDeviceSettings();
+    }
 }
 
 void MainDialog::on_EventFilter_KeyPressed(QKeyEvent *event)

@@ -43,6 +43,7 @@ public:
 	CustomButton(QWidget* parent);
 	~CustomButton();
 	void Initialize(QWidget* widget);
+	void Clear();
 
 	void StartTimer();
 	void StopTimer();

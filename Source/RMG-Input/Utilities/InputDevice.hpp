@@ -29,7 +29,6 @@ public:
 
     void SetSDLThread(Thread::SDLThread* sdlThread);
 
-    InputDeviceType     GetDeviceType(void);
     SDL_Joystick*       GetJoystickHandle(void);
     SDL_GameController* GetGameControllerHandle(void);
 
@@ -43,7 +42,10 @@ public:
     bool HasOpenDevice(void);
 
     // tries to open device with given name & num
-    bool OpenDevice(std::string name, int num);
+    void OpenDevice(std::string name, int num);
+
+    // returns whether we're still trying to open the device
+    bool IsOpeningDevice(void);
 
     // tries to close opened device
     bool CloseDevice(void);
@@ -55,15 +57,23 @@ private:
         int number;
     };
 
-    InputDeviceType     deviceType = InputDeviceType::Invalid;
     SDL_Joystick*       joystick = nullptr;
     SDL_GameController* gameController = nullptr;
     SDL_Haptic*         haptic = nullptr;
 
+    bool hasOpenDevice = false;
+    bool isOpeningDevice = false;
+
     Thread::SDLThread* sdlThread = nullptr;
-    std::vector<SDLDevice> foundDevices;
+
+    std::string desiredDeviceName;
+    int desiredDeviceNum;
+
+    std::vector<SDLDevice> foundDevicesWithNameMatch;
+
 private slots:
     void on_SDLThread_DeviceFound(QString, int);
+    void on_SDLThread_DeviceSearchFinished(void);
 };
 } // namespace Utilities
 
