@@ -53,8 +53,8 @@ static m64p_error VidExt_Init(void)
     l_SurfaceFormat.setOption(QSurfaceFormat::DeprecatedFunctions, 1);
     l_SurfaceFormat.setDepthBufferSize(24);
     l_SurfaceFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
-    l_SurfaceFormat.setMajorVersion(2);
-    l_SurfaceFormat.setMinorVersion(1);
+    l_SurfaceFormat.setMajorVersion(3);
+    l_SurfaceFormat.setMinorVersion(3);
     l_SurfaceFormat.setSwapInterval(0);
 
     l_EmuThread->on_VidExt_Init();
