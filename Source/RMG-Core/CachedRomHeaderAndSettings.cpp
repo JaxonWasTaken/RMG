@@ -110,6 +110,12 @@ void CoreReadRomHeaderAndSettingsCache(void)
 #define FREAD_STR(x) inputStream.read((char*)x, sizeof(x))
     while (!inputStream.eof())
     {
+        // reset buffers
+        memset(fileNameBuf, 0, sizeof(fileNameBuf));
+        memset(headerNameBuf, 0, sizeof(headerNameBuf));
+        memset(goodNameBuf, 0, sizeof(goodNameBuf));
+        memset(md5Buf, 0, sizeof(md5Buf));
+
         // file info
         FREAD_STR(fileNameBuf);
         cacheEntry.fileName = std::string(fileNameBuf);
@@ -164,6 +170,12 @@ bool CoreSaveRomHeaderAndSettingsCache(void)
     for (auto iter = l_CacheEntries.cbegin(); iter != l_CacheEntries.end(); iter++)
     {
         cacheEntry = (*iter);
+
+        // reset buffers
+        memset(fileNameBuf, 0, sizeof(fileNameBuf));
+        memset(headerNameBuf, 0, sizeof(headerNameBuf));
+        memset(goodNameBuf, 0, sizeof(goodNameBuf));
+        memset(md5Buf, 0, sizeof(md5Buf));
 
         strncpy(fileNameBuf, cacheEntry.fileName.c_str(), MAX_FILENAME_LEN);
         strncpy(headerNameBuf, cacheEntry.header.Name.c_str(), sizeof(headerNameBuf));
